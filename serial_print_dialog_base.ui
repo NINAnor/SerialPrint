@@ -1,31 +1,141 @@
-<ui version="4.0" >
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
  <class>SerialPrintDialogBase</class>
- <widget class="QDialog" name="SerialPrintDialogBase" >
-  <property name="geometry" >
+ <widget class="QDialog" name="SerialPrintDialogBase">
+  <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>459</width>
+    <height>470</height>
    </rect>
   </property>
-  <property name="windowTitle" >
+  <property name="windowTitle">
    <string>Serial print</string>
   </property>
-  <widget class="QDialogButtonBox" name="button_box" >
-   <property name="geometry" >
+  <widget class="QDialogButtonBox" name="button_box">
+   <property name="geometry">
     <rect>
-     <x>30</x>
-     <y>240</y>
+     <x>110</x>
+     <y>430</y>
      <width>341</width>
      <height>32</height>
     </rect>
    </property>
-   <property name="orientation" >
+   <property name="orientation">
     <enum>Qt::Horizontal</enum>
    </property>
-   <property name="standardButtons" >
+   <property name="standardButtons">
     <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+   </property>
+  </widget>
+  <widget class="QWidget" name="gridLayoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>50</y>
+     <width>441</width>
+     <height>374</height>
+    </rect>
+   </property>
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <widget class="QLabel" name="composer_label">
+      <property name="text">
+       <string>Composer</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="QComboBox" name="composer"/>
+    </item>
+    <item row="7" column="0">
+     <widget class="QComboBox" name="format"/>
+    </item>
+    <item row="2" column="0">
+     <widget class="QLabel" name="map_label">
+      <property name="text">
+       <string>Map item</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="0">
+     <widget class="QComboBox" name="legend"/>
+    </item>
+    <item row="8" column="0">
+     <widget class="QLabel" name="prefix_label">
+      <property name="text">
+       <string>Output prefix</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0">
+     <widget class="QComboBox" name="map"/>
+    </item>
+    <item row="11" column="0" colspan="2">
+     <widget class="QLineEdit" name="directory"/>
+    </item>
+    <item row="4" column="0">
+     <widget class="QLabel" name="legend_label">
+      <property name="text">
+       <string>Legend item</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="0">
+     <widget class="QLabel" name="format_label">
+      <property name="text">
+       <string>Output format</string>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="0">
+     <widget class="QLineEdit" name="prefix"/>
+    </item>
+    <item row="10" column="0">
+     <widget class="QLabel" name="directory_label">
+      <property name="text">
+       <string>Output directory</string>
+      </property>
+     </widget>
+    </item>
+    <item row="11" column="2">
+     <widget class="QPushButton" name="browse">
+      <property name="text">
+       <string>Browse</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="1" rowspan="10" colspan="2">
+     <widget class="QListWidget" name="layers"/>
+    </item>
+    <item row="0" column="1" colspan="2">
+     <widget class="QLabel" name="layers_label">
+      <property name="text">
+       <string>Layers</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QLabel" name="heading">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>371</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>11</pointsize>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="text">
+    <string>Define setings for export:</string>
    </property>
   </widget>
  </widget>
@@ -37,13 +147,13 @@
    <receiver>SerialPrintDialogBase</receiver>
    <slot>accept()</slot>
    <hints>
-    <hint type="source_label" >
-     <x>248</x>
-     <y>254</y>
+    <hint type="sourcelabel">
+     <x>20</x>
+     <y>20</y>
     </hint>
-    <hint type="destination_label" >
-     <x>157</x>
-     <y>274</y>
+    <hint type="destinationlabel">
+     <x>20</x>
+     <y>20</y>
     </hint>
    </hints>
   </connection>
@@ -53,13 +163,29 @@
    <receiver>SerialPrintDialogBase</receiver>
    <slot>reject()</slot>
    <hints>
-    <hint type="source_label" >
-     <x>316</x>
-     <y>260</y>
+    <hint type="sourcelabel">
+     <x>20</x>
+     <y>20</y>
     </hint>
-    <hint type="destination_label" >
-     <x>286</x>
-     <y>274</y>
+    <hint type="destinationlabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>browse</sender>
+   <signal>clicked()</signal>
+   <receiver>SerialPrintDialogBase</receiver>
+   <slot>exec()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>390</x>
+     <y>405</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>229</x>
+     <y>234</y>
     </hint>
    </hints>
   </connection>
