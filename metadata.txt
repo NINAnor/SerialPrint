@@ -1,0 +1,39 @@
+# This file contains metadata for your plugin. Since 
+# version 2.0 of QGIS this is the proper way to supply 
+# information about a plugin. The old method of 
+# embedding metadata in __init__.py will 
+# is no longer supported since version 2.0.
+
+# This file should be included when you package your plugin.# Mandatory items:
+
+[general]
+name=Serial print
+qgisMinimumVersion=2.0
+description=Adds each layer from a series of layers to a print composer and exports the latter.
+version=0.1
+author=Stefan Blumentrath - Norwegian Institute for Nature Research
+email=stefan.blumentrath@nina.no
+
+about=The Serial Print plugin adds each layer from a series of layers - one by one - to a print composer, updates the legend and exports the composition to image or PDF. It allows for example to easily produce a series of images / documents, where the general map layout (background maps, north arrow, and other composer items) is unchanged and only the single selected layers are added. It can be useful e.g. for creating a map for each species in a given area ... It requires, that the current project contains at least one existing print composer with one map element and a legend.
+
+tracker=https://github.com/NINAnor/SerialPrint/issues
+repository=https://github.com/NINAnor/SerialPrint
+# End of mandatory metadata
+
+# Recommended items:
+
+# Uncomment the following line and add your changelog:
+# changelog=
+
+# Tags are comma separated with spaces allowed
+tags=export, layers, print, pdf, composer
+
+homepage=https://github.com/NINAnor/SerialPrint
+category=Plugins
+icon=icon.png
+# experimental flag
+experimental=True
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+
