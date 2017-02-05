@@ -204,8 +204,8 @@ class SerialPrint:
         self.dlg.format.addItems(output_formats)
 
         # Get available layers
-        layers = self.iface.legendInterface().layers()
-        layer_names = [l.name() for l in layers]
+        qlayers = self.iface.legendInterface().layers()
+        layer_names = [l.name() for l in qlayers]
         self.dlg.layers.clear()
         self.dlg.layers.addItems(layer_names)
 
@@ -240,7 +240,12 @@ class SerialPrint:
             # Composer name from ComboBox
             selectedComposer = self.dlg.composer.currentText()
             
-            layers = list(self.dlg.layers.selectedItems()) if self.dlg.layers.selectedItems() else None
+            slayers = list(self.dlg.layers.selectedItems()) if self.dlg.layers.selectedItems() else None
+            layers = []
+            for sl in slayers:
+                for ql in qlayers:
+                    if sl == ql.name():
+                        layers.append(ql) 
 
             # 
             # Name of composer map from ComboBox
@@ -255,7 +260,7 @@ class SerialPrint:
             output_prefix = self.dlg.prefix.text()
 
             # Output format from ComboBox
-            output_format = 'PNG'
+            output_format = self.dlg.format.currentText()
 
             # Initialize composition
             for c in self.iface.activeComposers():
