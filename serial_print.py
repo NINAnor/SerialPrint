@@ -28,6 +28,7 @@ import resources
 from serial_print_dialog import SerialPrintDialog
 import os.path
 
+from qgis.core import *
 
 class SerialPrint:
     """QGIS Plugin Implementation."""
@@ -179,9 +180,53 @@ class SerialPrint:
         # remove the toolbar
         del self.toolbar
 
-
     def run(self):
         """Run method that performs all the real work"""
+        # QgsComposerItem.ComposerMap
+        # QgsComposerItem.ComposerLegend
+        def getCompItemNames(composition, type):
+            compItemNames = []
+            for i in composition.items():
+                if i.type() == type and i.scene():
+                    compItemNames.append(i.displayName())
+            return compItemNames
+        # next
+        def getCompItemFromTitle(composition, type, title):
+            for i in composition.items():
+                if i.type() == type and i.scene() and i.displayName() == title:
+                    compItem = i
+            return compItem
+
+        # Predefine list of output formats
+        output_formats = ['PNG', 'TIF', 'BMP', 'JPG', 'PDF']
+
+        self.dlg.format.clear()
+        self.dlg.format.addItems(output_formats)
+
+        # Get available layers
+        layers = self.iface.legendInterface().layers()
+        layer_names = [l.name() for l in layers]
+        self.dlg.layers.clear()
+        self.dlg.layers.addItems(layer_names)
+
+        if len(self.iface.activeComposers()) == 0:
+            print 'Error'
+        else:
+            composers = [c.composerWindow().windowTitle() 
+                         for c in self.iface.activeComposers()]
+        self.dlg.composer.clear()
+        self.dlg.composer.addItems(composers)
+
+        maps = getCompItemNames(self.iface.activeComposers()[0],
+                                QgsComposerItem.ComposerMap)
+        self.dlg.map.clear()
+        self.dlg.map.addItems(maps)
+
+        legends = getCompItemNames(self.iface.activeComposers()[0],
+                                   QgsComposerItem.ComposerLegend)
+        self.dlg.legend.clear()
+        self.dlg.legend.addItems(legends)
+
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
@@ -190,4 +235,70 @@ class SerialPrint:
         if result:
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
-            pass
+
+            ### Parse user input
+            # Composer name from ComboBox
+            selectedComposer = self.dlg.composer.currentText()
+            
+            layers = list(self.dlg.layers.selectedItems()) if self.dlg.layers.selectedItems() else None
+
+            # 
+            # Name of composer map from ComboBox
+            composer_map = self.dlg.map.currentText()
+            # Name of legend from ComboBox
+            composer_ledgend = self.dlg.legend.currentText()
+
+            # Output directory selected by user
+            output_folder = self.dlg.directory.text()
+
+            # Output prefix given by user
+            output_prefix = self.dlg.prefix.text()
+
+            # Output format from ComboBox
+            output_format = 'PNG'
+
+            # Initialize composition
+            for c in self.iface.activeComposers():
+                if c.composerWindow().windowTitle() == selectedComposer:
+                    comp = c.composition()
+
+            # Initialize counter
+            m = 0
+
+            # Not sure which interaction with map canvas is required
+            canvas = self.iface.mapCanvas()
+
+            map_item = comp.getComposerItemById(composer_map)
+            legend_item = comp.getComposerItemById(composer_ledgend)
+
+            for a in layers:
+                self.iface.legendInterface().setLayerVisible(a, False)
+
+            comp.refreshItems()
+
+            # 
+            for layer in layers:
+                m = m + 1
+                self.iface.legendInterface().setLayerVisible(layer, True)
+                #comp.refreshItems()
+                # Not sure if it is required to set the map canvas
+                map_item.setMapCanvas(canvas)
+                # map_item.zoomToExtent(canvas.extent())
+                #comp.refreshItems()
+                # Update legend (remove old layer add new)
+                #legend_item.modelV2().rootGroup().addLayer(layer)
+                legend_item.modelV2().rootGroup().insertLayer(0, layer)
+                legend_item.updateLegend()
+                # Refresh composition
+                comp.refreshItems()   
+                # Write out result
+                imageName = output_prefix + '{}.{}'.format(str(m), output_format.lower())
+                imagePath = os.path.join(output_folder, imageName)
+                if output_format != 'PDF':
+                    image = comp.printPageAsRaster(0)
+                    image.save(imagePath,output_format)
+                else:
+                    comp.exportAsPDF(imagePath)
+                iface.legendInterface().setLayerVisible(layer, False)
+                legend_item.modelV2().rootGroup().removeLayer(layer)
+                legend_item.updateLegend()
