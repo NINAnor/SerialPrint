@@ -19,6 +19,14 @@
  *   (at your option) any later version.                                   *
  *                                                                         *
  ***************************************************************************/
+
+ToDos:
+- get composer items by displayName instead of id
+- check if at least one layer is selected
+- check if a composer map item is selected
+- check if legend is avaialable, if not skip legend update
+- remove possibly existing legend entries for selected layers
+- disable mapcanvas rendering during plugin run
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon
