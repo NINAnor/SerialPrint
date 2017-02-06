@@ -239,28 +239,34 @@ class SerialPrint:
             ### Parse user input
             # Composer name from ComboBox
             selectedComposer = self.dlg.composer.currentText()
-            
+            print selectedComposer
             slayers = list(self.dlg.layers.selectedItems()) if self.dlg.layers.selectedItems() else None
             layers = []
-            for sl in slayers:
+            for sl in [qsl.text() for qsl in slayers]:
                 for ql in qlayers:
                     if sl == ql.name():
                         layers.append(ql) 
-
+            #print slayers
             # 
             # Name of composer map from ComboBox
             composer_map = self.dlg.map.currentText()
+            print layers
+
             # Name of legend from ComboBox
             composer_ledgend = self.dlg.legend.currentText()
+            print layers
 
             # Output directory selected by user
             output_folder = self.dlg.directory.text()
+            print output_folder
 
             # Output prefix given by user
             output_prefix = self.dlg.prefix.text()
+            print output_prefix
 
             # Output format from ComboBox
             output_format = self.dlg.format.currentText()
+            print output_format
 
             # Initialize composition
             for c in self.iface.activeComposers():
@@ -304,6 +310,6 @@ class SerialPrint:
                     image.save(imagePath,output_format)
                 else:
                     comp.exportAsPDF(imagePath)
-                iface.legendInterface().setLayerVisible(layer, False)
+                self.iface.legendInterface().setLayerVisible(layer, False)
                 legend_item.modelV2().rootGroup().removeLayer(layer)
                 legend_item.updateLegend()
