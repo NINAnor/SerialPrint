@@ -13,6 +13,9 @@
   <property name="windowTitle">
    <string>Serial print</string>
   </property>
+  <property name="modal">
+   <bool>false</bool>
+  </property>
   <widget class="QDialogButtonBox" name="button_box">
    <property name="geometry">
     <rect>
