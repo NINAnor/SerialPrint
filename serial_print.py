@@ -21,20 +21,19 @@
  ***************************************************************************/
 
 ToDos:
-- get composer items by displayName instead of id
-- check if at least one layer is selected
-- check if a composer map item is selected
-- check if legend is avaialable, if not skip legend update
-- remove possibly existing legend entries for selected layers
+- Keep dialog open on OK
+- replace default icon
+- Add documentation
 - disable mapcanvas rendering during plugin run
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
-from PyQt4.QtGui import QAction, QIcon
+from PyQt4.QtGui import QAction, QIcon, QDialog, QFileDialog
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
 from serial_print_dialog import SerialPrintDialog
 import os.path
+import sys
 
 from qgis.core import *
 
@@ -198,6 +197,21 @@ class SerialPrint:
                 if i.type() == type and i.scene():
                     compItemNames.append(i.displayName())
             return compItemNames
+
+        def storeSettings(prefix, directory):
+            s = QSettings()
+            s.setValue("serialprint/prefix", prefix)
+            s.setValue("serialprint/directory", directory)
+
+        def readSettings():
+            s = QSettings()
+            prefix = s.value("serialprint/prefix", "map")
+            directory = s.value("serialprint/directory", os.path.expanduser('~'))
+            return [prefix, directory]
+            for i in composition.items():
+                if i.type() == type and i.scene():
+                    compItemNames.append(i.displayName())
+            return compItemNames
         # next
         def getCompItemFromTitle(composition, type, title):
             for i in composition.items():
@@ -205,6 +219,18 @@ class SerialPrint:
                     compItem = i
             return compItem
 
+        def updateCItems():
+            cid = self.dlg.composer.currentIndex()
+            map = getCompItemNames(self.iface.activeComposers()[cid],
+                                   QgsComposerItem.ComposerMap)
+            self.dlg.map.clear()
+            self.dlg.map.addItems(map)
+            legend = getCompItemNames(self.iface.activeComposers()[cid],
+                                   QgsComposerItem.ComposerLegend)
+            self.dlg.legend.clear()
+            self.dlg.legend.addItems(legend)
+            #return map
+        
         # Predefine list of output formats
         output_formats = ['PNG', 'TIF', 'BMP', 'JPG', 'PDF']
 
@@ -217,6 +243,7 @@ class SerialPrint:
         self.dlg.layers.clear()
         self.dlg.layers.addItems(layer_names)
 
+        # Get list of composers
         if len(self.iface.activeComposers()) == 0:
             print 'Error'
         else:
@@ -224,57 +251,70 @@ class SerialPrint:
                          for c in self.iface.activeComposers()]
         self.dlg.composer.clear()
         self.dlg.composer.addItems(composers)
+        
+        self.dlg.composer.currentIndexChanged.connect(updateCItems)
 
         maps = getCompItemNames(self.iface.activeComposers()[0],
                                 QgsComposerItem.ComposerMap)
+
+        # Get map items of currently selected composer
         self.dlg.map.clear()
         self.dlg.map.addItems(maps)
 
+        # Get legend items of currently selected composer
         legends = getCompItemNames(self.iface.activeComposers()[0],
                                    QgsComposerItem.ComposerLegend)
         self.dlg.legend.clear()
         self.dlg.legend.addItems(legends)
+
+        outputDir = QFileDialog(None, "Select output Directory")
+        outputDir.setFileMode(QFileDialog.Directory)
+        outputDir.setAcceptMode(QFileDialog.AcceptOpen)
+        outputDir.setOption(QFileDialog.ShowDirsOnly, True)
+        
+        def OpenBrowser():
+            outputDir.show()
+            if outputDir.exec_() == QDialog.Accepted:
+                outDir = outputDir.selectedFiles()[0]
+                self.dlg.directory.setText(outDir)
+                
+        self.dlg.browse.clicked.connect(OpenBrowser)
+
+        settings = readSettings()
+        self.dlg.directory.setText(settings[1])
+        self.dlg.prefix.setText(settings[0])
 
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
         result = self.dlg.exec_()
         # See if OK was pressed
-        if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
-
+        if result and self.dlg.layers.selectedItems():
             ### Parse user input
             # Composer name from ComboBox
             selectedComposer = self.dlg.composer.currentText()
-            print selectedComposer
+
             slayers = list(self.dlg.layers.selectedItems()) if self.dlg.layers.selectedItems() else None
             layers = []
             for sl in [qsl.text() for qsl in slayers]:
                 for ql in qlayers:
                     if sl == ql.name():
                         layers.append(ql) 
-            #print slayers
-            # 
+
             # Name of composer map from ComboBox
             composer_map = self.dlg.map.currentText()
-            print layers
 
             # Name of legend from ComboBox
             composer_ledgend = self.dlg.legend.currentText()
-            print layers
 
             # Output directory selected by user
             output_folder = self.dlg.directory.text()
-            print output_folder
 
             # Output prefix given by user
             output_prefix = self.dlg.prefix.text()
-            print output_prefix
 
             # Output format from ComboBox
             output_format = self.dlg.format.currentText()
-            print output_format
 
             # Initialize composition
             for c in self.iface.activeComposers():
@@ -287,37 +327,77 @@ class SerialPrint:
             # Not sure which interaction with map canvas is required
             canvas = self.iface.mapCanvas()
 
-            map_item = comp.getComposerItemById(composer_map)
-            legend_item = comp.getComposerItemById(composer_ledgend)
+            if not composer_map or composer_map == '':
+                no_map = u"No map item in current print composer. Please add a map item or choose a different composer."
+                self.iface.messageBar().pushWarning(u"Warning", no_map)
+                self.iface.messageBar().pushWarning(u"Warning", no_map)
+                # sys.exit()
+            else:
 
-            for a in layers:
-                self.iface.legendInterface().setLayerVisible(a, False)
+                map_item = getCompItemFromTitle(comp,
+                                                QgsComposerItem.ComposerMap,
+                                                composer_map)
 
-            comp.refreshItems()
-
-            # 
-            for layer in layers:
-                m = m + 1
-                self.iface.legendInterface().setLayerVisible(layer, True)
-                #comp.refreshItems()
-                # Not sure if it is required to set the map canvas
-                map_item.setMapCanvas(canvas)
-                # map_item.zoomToExtent(canvas.extent())
-                #comp.refreshItems()
-                # Update legend (remove old layer add new)
-                #legend_item.modelV2().rootGroup().addLayer(layer)
-                legend_item.modelV2().rootGroup().insertLayer(0, layer)
-                legend_item.updateLegend()
-                # Refresh composition
-                comp.refreshItems()   
-                # Write out result
-                imageName = output_prefix + '{}.{}'.format(str(m), output_format.lower())
-                imagePath = os.path.join(output_folder, imageName)
-                if output_format != 'PDF':
-                    image = comp.printPageAsRaster(0)
-                    image.save(imagePath,output_format)
+                if composer_ledgend:
+                    legend_item = getCompItemFromTitle(comp,
+                                                       QgsComposerItem.ComposerLegend,
+                                                       composer_ledgend)
                 else:
-                    comp.exportAsPDF(imagePath)
-                self.iface.legendInterface().setLayerVisible(layer, False)
-                legend_item.modelV2().rootGroup().removeLayer(layer)
-                legend_item.updateLegend()
+                    no_legend = "No legend in current print composer."
+                    self.iface.messageBar().pushInfo("Info", no_legend)
+
+                if legend_item:
+                    for ll in layers:
+                        legend_item.modelV2().rootGroup().removeLayer(ll)
+                        legend_item.updateLegend()
+
+                # Turn off visibility of all selected layers
+                for a in layers:
+                    self.iface.legendInterface().setLayerVisible(a, False)
+
+                # Refresh composer items
+                comp.refreshItems()
+
+                # Loop over selected layers
+                for layer in layers:
+                    m = m + 1
+                    self.iface.legendInterface().setLayerVisible(layer, True)
+                    #comp.refreshItems()
+                    # Not sure if it is required to set the map canvas
+                    map_item.setMapCanvas(canvas)
+                    # map_item.zoomToExtent(canvas.extent())
+                    #comp.refreshItems()
+                    # Update legend (remove old layer add new)
+                    #legend_item.modelV2().rootGroup().addLayer(layer)
+                    if legend_item:
+                        legend_item.modelV2().rootGroup().insertLayer(0, layer)
+                        legend_item.updateLegend()
+                    # Refresh composition
+                    comp.refreshItems()   
+                    # Write out result
+                    imageName = output_prefix + '{}.{}'.format(str(m), 
+                                                               output_format.lower())
+                    imagePath = os.path.join(output_folder, imageName)
+                    if output_format != 'PDF':
+                        image = comp.printPageAsRaster(0)
+                        image.save(imagePath,output_format)
+                    else:
+                        comp.exportAsPDF(imagePath)
+                    self.iface.legendInterface().setLayerVisible(layer, False)
+
+                    # Update legend item if required
+                    if legend_item:
+                        legend_item.modelV2().rootGroup().removeLayer(layer)
+                        legend_item.updateLegend()
+
+                # Give success message
+                success = u'Produced {} maps.'.format(m)
+                self.iface.messageBar().pushInfo(u"Done", success)
+
+                storeSettings(output_prefix, output_folder)
+
+        else:
+            # Throw warning message
+            no_layer = u"No layer selected. Please choose at least one layer."
+            self.iface.messageBar().pushWarning(u"Warning", no_layer)
+                    
