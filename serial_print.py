@@ -21,10 +21,13 @@
  ***************************************************************************/
 
 ToDos:
+- Check if a composer exists in current project
+- Dont throw messages on Cancel
 - Keep dialog open on OK
-- replace default icon
 - Add documentation
 - disable mapcanvas rendering during plugin run
+    - setRenderFlag(True)
+- limit export to BBox of canvas items
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon, QDialog, QFileDialog
@@ -36,6 +39,7 @@ import os.path
 import sys
 
 from qgis.core import *
+
 
 class SerialPrint:
     """QGIS Plugin Implementation."""
@@ -66,7 +70,6 @@ class SerialPrint:
             if qVersion() > '4.3.3':
                 QCoreApplication.installTranslator(self.translator)
 
-
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr(u'&Serial print')
@@ -88,7 +91,6 @@ class SerialPrint:
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('SerialPrint', message)
-
 
     def add_action(
         self,
@@ -176,7 +178,6 @@ class SerialPrint:
             callback=self.run,
             parent=self.iface.mainWindow())
 
-
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
@@ -212,6 +213,7 @@ class SerialPrint:
                 if i.type() == type and i.scene():
                     compItemNames.append(i.displayName())
             return compItemNames
+
         # next
         def getCompItemFromTitle(composition, type, title):
             for i in composition.items():
@@ -229,8 +231,7 @@ class SerialPrint:
                                    QgsComposerItem.ComposerLegend)
             self.dlg.legend.clear()
             self.dlg.legend.addItems(legend)
-            #return map
-        
+
         # Predefine list of output formats
         output_formats = ['PNG', 'TIF', 'BMP', 'JPG', 'PDF']
 
@@ -247,11 +248,11 @@ class SerialPrint:
         if len(self.iface.activeComposers()) == 0:
             print 'Error'
         else:
-            composers = [c.composerWindow().windowTitle() 
+            composers = [c.composerWindow().windowTitle()
                          for c in self.iface.activeComposers()]
         self.dlg.composer.clear()
         self.dlg.composer.addItems(composers)
-        
+
         self.dlg.composer.currentIndexChanged.connect(updateCItems)
 
         maps = getCompItemNames(self.iface.activeComposers()[0],
@@ -271,13 +272,13 @@ class SerialPrint:
         outputDir.setFileMode(QFileDialog.Directory)
         outputDir.setAcceptMode(QFileDialog.AcceptOpen)
         outputDir.setOption(QFileDialog.ShowDirsOnly, True)
-        
+
         def OpenBrowser():
             outputDir.show()
             if outputDir.exec_() == QDialog.Accepted:
                 outDir = outputDir.selectedFiles()[0]
                 self.dlg.directory.setText(outDir)
-                
+
         self.dlg.browse.clicked.connect(OpenBrowser)
 
         settings = readSettings()
@@ -299,7 +300,7 @@ class SerialPrint:
             for sl in [qsl.text() for qsl in slayers]:
                 for ql in qlayers:
                     if sl == ql.name():
-                        layers.append(ql) 
+                        layers.append(ql)
 
             # Name of composer map from ComboBox
             composer_map = self.dlg.map.currentText()
@@ -327,13 +328,12 @@ class SerialPrint:
             # Not sure which interaction with map canvas is required
             canvas = self.iface.mapCanvas()
 
+            canvas.setRenderFlag(False)
+
             if not composer_map or composer_map == '':
                 no_map = u"No map item in current print composer. Please add a map item or choose a different composer."
                 self.iface.messageBar().pushWarning(u"Warning", no_map)
-                self.iface.messageBar().pushWarning(u"Warning", no_map)
-                # sys.exit()
             else:
-
                 map_item = getCompItemFromTitle(comp,
                                                 QgsComposerItem.ComposerMap,
                                                 composer_map)
@@ -373,14 +373,14 @@ class SerialPrint:
                         legend_item.modelV2().rootGroup().insertLayer(0, layer)
                         legend_item.updateLegend()
                     # Refresh composition
-                    comp.refreshItems()   
+                    comp.refreshItems()
                     # Write out result
-                    imageName = output_prefix + '{}.{}'.format(str(m), 
+                    imageName = output_prefix + '{}.{}'.format(str(m),
                                                                output_format.lower())
                     imagePath = os.path.join(output_folder, imageName)
                     if output_format != 'PDF':
                         image = comp.printPageAsRaster(0)
-                        image.save(imagePath,output_format)
+                        image.save(imagePath, output_format)
                     else:
                         comp.exportAsPDF(imagePath)
                     self.iface.legendInterface().setLayerVisible(layer, False)
@@ -394,10 +394,10 @@ class SerialPrint:
                 success = u'Produced {} maps.'.format(m)
                 self.iface.messageBar().pushInfo(u"Done", success)
 
+                canvas.setRenderFlag(True)
                 storeSettings(output_prefix, output_folder)
 
         else:
             # Throw warning message
             no_layer = u"No layer selected. Please choose at least one layer."
             self.iface.messageBar().pushWarning(u"Warning", no_layer)
-                    
