@@ -23,12 +23,14 @@
 ToDos:
 - Keep dialog open on OK
 - Add documentation
+- throw warning if user selects a composer without map item
 - limit export to BBox of canvas items
   - cropRect = comp.pageItemBounds(0, True)
   - comp.renderRectAsRaster(cropRect)
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon, QDialog, QFileDialog
+from qgis.gui import QgsMessageBar
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
@@ -245,7 +247,9 @@ class SerialPrint:
         # Get list of composers
         if len(self.iface.activeComposers()) == 0:
             no_composer = u"No composer found in current project. Please add a composer with a map item and optionaly a legend."
-            self.iface.messageBar().pushWarning(u"Warning", no_map)
+            self.iface.messageBar().pushMessage(u"Error", no_map,
+                                                level=QgsMessageBar.CRITICAL,
+                                                duration=3)
         else:
             composers = [c.composerWindow().windowTitle()
                          for c in self.iface.activeComposers()]
@@ -333,7 +337,9 @@ class SerialPrint:
 
                     if not composer_map or composer_map == '':
                         no_map = u"No map item in current print composer. Please add a map item or choose a different composer."
-                        self.iface.messageBar().pushWarning(u"Warning", no_map)
+                        self.iface.messageBar().pushMessage(u"Error", no_map,
+                                                          level=QgsMessageBar.CRITICAL,
+                                                          duration=3)
                     else:
                         map_item = getCompItemFromTitle(comp,
                                                         QgsComposerItem.ComposerMap,
@@ -401,4 +407,6 @@ class SerialPrint:
                 else:
                     # Throw warning message
                     no_layer = u"No layer selected. Please choose at least one layer."
-                    self.iface.messageBar().pushWarning(u"Warning", no_layer)
+                    self.iface.messageBar().pushMessage(u"Error", no_layer,
+                                                        level=QgsMessageBar.CRITICAL,
+                                                        duration=3)
