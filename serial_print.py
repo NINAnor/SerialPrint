@@ -21,13 +21,11 @@
  ***************************************************************************/
 
 ToDos:
-- Check if a composer exists in current project
-- Dont throw messages on Cancel
 - Keep dialog open on OK
 - Add documentation
-- disable mapcanvas rendering during plugin run
-    - setRenderFlag(True)
 - limit export to BBox of canvas items
+  - cropRect = comp.pageItemBounds(0, True)
+  - comp.renderRectAsRaster(cropRect)
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon, QDialog, QFileDialog
@@ -246,158 +244,161 @@ class SerialPrint:
 
         # Get list of composers
         if len(self.iface.activeComposers()) == 0:
-            print 'Error'
+            no_composer = u"No composer found in current project. Please add a composer with a map item and optionaly a legend."
+            self.iface.messageBar().pushWarning(u"Warning", no_map)
         else:
             composers = [c.composerWindow().windowTitle()
                          for c in self.iface.activeComposers()]
-        self.dlg.composer.clear()
-        self.dlg.composer.addItems(composers)
 
-        self.dlg.composer.currentIndexChanged.connect(updateCItems)
+            self.dlg.composer.clear()
+            self.dlg.composer.addItems(composers)
 
-        maps = getCompItemNames(self.iface.activeComposers()[0],
-                                QgsComposerItem.ComposerMap)
+            self.dlg.composer.currentIndexChanged.connect(updateCItems)
 
-        # Get map items of currently selected composer
-        self.dlg.map.clear()
-        self.dlg.map.addItems(maps)
+            maps = getCompItemNames(self.iface.activeComposers()[0],
+                                    QgsComposerItem.ComposerMap)
 
-        # Get legend items of currently selected composer
-        legends = getCompItemNames(self.iface.activeComposers()[0],
-                                   QgsComposerItem.ComposerLegend)
-        self.dlg.legend.clear()
-        self.dlg.legend.addItems(legends)
+            # Get map items of currently selected composer
+            self.dlg.map.clear()
+            self.dlg.map.addItems(maps)
 
-        outputDir = QFileDialog(None, "Select output Directory")
-        outputDir.setFileMode(QFileDialog.Directory)
-        outputDir.setAcceptMode(QFileDialog.AcceptOpen)
-        outputDir.setOption(QFileDialog.ShowDirsOnly, True)
+            # Get legend items of currently selected composer
+            legends = getCompItemNames(self.iface.activeComposers()[0],
+                                       QgsComposerItem.ComposerLegend)
+            self.dlg.legend.clear()
+            self.dlg.legend.addItems(legends)
 
-        def OpenBrowser():
-            outputDir.show()
-            if outputDir.exec_() == QDialog.Accepted:
-                outDir = outputDir.selectedFiles()[0]
-                self.dlg.directory.setText(outDir)
+            outputDir = QFileDialog(None, "Select output Directory")
+            outputDir.setFileMode(QFileDialog.Directory)
+            outputDir.setAcceptMode(QFileDialog.AcceptOpen)
+            outputDir.setOption(QFileDialog.ShowDirsOnly, True)
 
-        self.dlg.browse.clicked.connect(OpenBrowser)
+            def OpenBrowser():
+                outputDir.show()
+                if outputDir.exec_() == QDialog.Accepted:
+                    outDir = outputDir.selectedFiles()[0]
+                    self.dlg.directory.setText(outDir)
 
-        settings = readSettings()
-        self.dlg.directory.setText(settings[1])
-        self.dlg.prefix.setText(settings[0])
+            self.dlg.browse.clicked.connect(OpenBrowser)
 
-        # show the dialog
-        self.dlg.show()
-        # Run the dialog event loop
-        result = self.dlg.exec_()
-        # See if OK was pressed
-        if result and self.dlg.layers.selectedItems():
-            ### Parse user input
-            # Composer name from ComboBox
-            selectedComposer = self.dlg.composer.currentText()
+            settings = readSettings()
+            self.dlg.directory.setText(settings[1])
+            self.dlg.prefix.setText(settings[0])
 
-            slayers = list(self.dlg.layers.selectedItems()) if self.dlg.layers.selectedItems() else None
-            layers = []
-            for sl in [qsl.text() for qsl in slayers]:
-                for ql in qlayers:
-                    if sl == ql.name():
-                        layers.append(ql)
+            # show the dialog
+            self.dlg.show()
+            # Run the dialog event loop
+            result = self.dlg.exec_()
+            # See if OK was pressed
+            if result:
+                if self.dlg.layers.selectedItems():
+                    ### Parse user input
+                    # Composer name from ComboBox
+                    selectedComposer = self.dlg.composer.currentText()
 
-            # Name of composer map from ComboBox
-            composer_map = self.dlg.map.currentText()
+                    slayers = list(self.dlg.layers.selectedItems()) if self.dlg.layers.selectedItems() else None
+                    layers = []
+                    for sl in [qsl.text() for qsl in slayers]:
+                        for ql in qlayers:
+                            if sl == ql.name():
+                                layers.append(ql)
 
-            # Name of legend from ComboBox
-            composer_ledgend = self.dlg.legend.currentText()
+                    # Name of composer map from ComboBox
+                    composer_map = self.dlg.map.currentText()
 
-            # Output directory selected by user
-            output_folder = self.dlg.directory.text()
+                    # Name of legend from ComboBox
+                    composer_ledgend = self.dlg.legend.currentText()
 
-            # Output prefix given by user
-            output_prefix = self.dlg.prefix.text()
+                    # Output directory selected by user
+                    output_folder = self.dlg.directory.text()
 
-            # Output format from ComboBox
-            output_format = self.dlg.format.currentText()
+                    # Output prefix given by user
+                    output_prefix = self.dlg.prefix.text()
 
-            # Initialize composition
-            for c in self.iface.activeComposers():
-                if c.composerWindow().windowTitle() == selectedComposer:
-                    comp = c.composition()
+                    # Output format from ComboBox
+                    output_format = self.dlg.format.currentText()
 
-            # Initialize counter
-            m = 0
+                    # Initialize composition
+                    for c in self.iface.activeComposers():
+                        if c.composerWindow().windowTitle() == selectedComposer:
+                            comp = c.composition()
 
-            # Not sure which interaction with map canvas is required
-            canvas = self.iface.mapCanvas()
+                    # Initialize counter
+                    m = 0
 
-            canvas.setRenderFlag(False)
+                    # Not sure which interaction with map canvas is required
+                    canvas = self.iface.mapCanvas()
 
-            if not composer_map or composer_map == '':
-                no_map = u"No map item in current print composer. Please add a map item or choose a different composer."
-                self.iface.messageBar().pushWarning(u"Warning", no_map)
-            else:
-                map_item = getCompItemFromTitle(comp,
-                                                QgsComposerItem.ComposerMap,
-                                                composer_map)
+                    canvas.setRenderFlag(False)
 
-                if composer_ledgend:
-                    legend_item = getCompItemFromTitle(comp,
-                                                       QgsComposerItem.ComposerLegend,
-                                                       composer_ledgend)
-                else:
-                    no_legend = "No legend in current print composer."
-                    self.iface.messageBar().pushInfo("Info", no_legend)
-
-                if legend_item:
-                    for ll in layers:
-                        legend_item.modelV2().rootGroup().removeLayer(ll)
-                        legend_item.updateLegend()
-
-                # Turn off visibility of all selected layers
-                for a in layers:
-                    self.iface.legendInterface().setLayerVisible(a, False)
-
-                # Refresh composer items
-                comp.refreshItems()
-
-                # Loop over selected layers
-                for layer in layers:
-                    m = m + 1
-                    self.iface.legendInterface().setLayerVisible(layer, True)
-                    #comp.refreshItems()
-                    # Not sure if it is required to set the map canvas
-                    map_item.setMapCanvas(canvas)
-                    # map_item.zoomToExtent(canvas.extent())
-                    #comp.refreshItems()
-                    # Update legend (remove old layer add new)
-                    #legend_item.modelV2().rootGroup().addLayer(layer)
-                    if legend_item:
-                        legend_item.modelV2().rootGroup().insertLayer(0, layer)
-                        legend_item.updateLegend()
-                    # Refresh composition
-                    comp.refreshItems()
-                    # Write out result
-                    imageName = output_prefix + '{}.{}'.format(str(m),
-                                                               output_format.lower())
-                    imagePath = os.path.join(output_folder, imageName)
-                    if output_format != 'PDF':
-                        image = comp.printPageAsRaster(0)
-                        image.save(imagePath, output_format)
+                    if not composer_map or composer_map == '':
+                        no_map = u"No map item in current print composer. Please add a map item or choose a different composer."
+                        self.iface.messageBar().pushWarning(u"Warning", no_map)
                     else:
-                        comp.exportAsPDF(imagePath)
-                    self.iface.legendInterface().setLayerVisible(layer, False)
+                        map_item = getCompItemFromTitle(comp,
+                                                        QgsComposerItem.ComposerMap,
+                                                        composer_map)
 
-                    # Update legend item if required
-                    if legend_item:
-                        legend_item.modelV2().rootGroup().removeLayer(layer)
-                        legend_item.updateLegend()
+                        if composer_ledgend:
+                            legend_item = getCompItemFromTitle(comp,
+                                                               QgsComposerItem.ComposerLegend,
+                                                               composer_ledgend)
+                        else:
+                            no_legend = "No legend in current print composer."
+                            self.iface.messageBar().pushInfo("Info", no_legend)
 
-                # Give success message
-                success = u'Produced {} maps.'.format(m)
-                self.iface.messageBar().pushInfo(u"Done", success)
+                        if legend_item:
+                            for ll in layers:
+                                legend_item.modelV2().rootGroup().removeLayer(ll)
+                                legend_item.updateLegend()
 
-                canvas.setRenderFlag(True)
-                storeSettings(output_prefix, output_folder)
+                        # Turn off visibility of all selected layers
+                        for a in layers:
+                            self.iface.legendInterface().setLayerVisible(a, False)
 
-        else:
-            # Throw warning message
-            no_layer = u"No layer selected. Please choose at least one layer."
-            self.iface.messageBar().pushWarning(u"Warning", no_layer)
+                        # Refresh composer items
+                        comp.refreshItems()
+
+                        # Loop over selected layers
+                        for layer in layers:
+                            m = m + 1
+                            self.iface.legendInterface().setLayerVisible(layer, True)
+                            #comp.refreshItems()
+                            # Not sure if it is required to set the map canvas
+                            map_item.setMapCanvas(canvas)
+                            # map_item.zoomToExtent(canvas.extent())
+                            #comp.refreshItems()
+                            # Update legend (remove old layer add new)
+                            #legend_item.modelV2().rootGroup().addLayer(layer)
+                            if legend_item:
+                                legend_item.modelV2().rootGroup().insertLayer(0, layer)
+                                legend_item.updateLegend()
+                            # Refresh composition
+                            comp.refreshItems()
+                            # Write out result
+                            imageName = output_prefix + '{}.{}'.format(str(m),
+                                                                       output_format.lower())
+                            imagePath = os.path.join(output_folder, imageName)
+                            if output_format != 'PDF':
+                                image = comp.printPageAsRaster(0)
+                                image.save(imagePath, output_format)
+                            else:
+                                comp.exportAsPDF(imagePath)
+                            self.iface.legendInterface().setLayerVisible(layer, False)
+
+                            # Update legend item if required
+                            if legend_item:
+                                legend_item.modelV2().rootGroup().removeLayer(layer)
+                                legend_item.updateLegend()
+
+                        # Give success message
+                        success = u'Produced {} maps.'.format(m)
+                        self.iface.messageBar().pushInfo(u"Done", success)
+
+                        canvas.setRenderFlag(True)
+                        storeSettings(output_prefix, output_folder)
+
+                else:
+                    # Throw warning message
+                    no_layer = u"No layer selected. Please choose at least one layer."
+                    self.iface.messageBar().pushWarning(u"Warning", no_layer)
