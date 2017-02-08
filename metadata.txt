@@ -14,7 +14,7 @@ version=0.1
 author=Stefan Blumentrath - Norwegian Institute for Nature Research
 email=stefan.blumentrath@nina.no
 
-about=The Serial Print plugin adds each layer from a series of layers - one by one - to a print composer, updates the legend and exports the composition to image or PDF. It allows for example to easily produce a series of images / documents, where the general map layout (background maps, north arrow, and other composer items) is unchanged and only the single selected layers are added. It can be useful e.g. for creating a map for each species in a given area ... It requires, that the current project contains at least one existing print composer with one map element and a legend.
+about=The Serial Print plugin adds each layer from a series of layers - one by one - to a print composer, updates the legend and exports the composition to image or PDF. It allows for example to easily produce a series of images / documents, where the general map layout (background maps, north arrow, and other composer items) is unchanged and only the single selected layers are added. It can be useful e.g. for creating a map for each species in a given area ... It requires, that the current project contains at least one existing print composer with one map element and optionaly a legend.
 
 tracker=https://github.com/NINAnor/SerialPrint/issues
 repository=https://github.com/NINAnor/SerialPrint
