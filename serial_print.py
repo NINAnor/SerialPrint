@@ -35,10 +35,15 @@ from qgis.gui import QgsMessageBar
 import resources
 # Import the code for the dialog
 from serial_print_dialog import SerialPrintDialog
-import os.path
+import os
 import sys
 
 from qgis.core import *
+
+# Define UTF-8 as encoding also on Windows
+if os.name == 'nt'
+    reload(sys)
+    sys.setdefaultencoding('UTF8')
 
 
 class SerialPrint:
