@@ -41,7 +41,7 @@ import sys
 from qgis.core import *
 
 # Define UTF-8 as encoding also on Windows
-if os.name == 'nt'
+if os.name == 'nt':
     reload(sys)
     sys.setdefaultencoding('UTF8')
 
