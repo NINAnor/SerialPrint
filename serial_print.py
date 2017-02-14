@@ -40,11 +40,6 @@ import sys
 
 from qgis.core import *
 
-# Define UTF-8 as encoding also on Windows
-if os.name == 'nt':
-    reload(sys)
-    sys.setdefaultencoding('UTF8')
-
 
 class SerialPrint:
     """QGIS Plugin Implementation."""
@@ -212,7 +207,8 @@ class SerialPrint:
         def readSettings():
             s = QSettings()
             prefix = s.value("serialprint/prefix", "map")
-            directory = s.value("serialprint/directory", os.path.expanduser('~'))
+            directory = s.value("serialprint/directory",
+                                os.path.expanduser('~'))
             return [prefix, directory]
             for i in composition.items():
                 if i.type() == type and i.scene():
@@ -222,7 +218,8 @@ class SerialPrint:
         # next
         def getCompItemFromTitle(composition, type, title):
             for i in composition.items():
-                if i.type() == type and i.scene() and i.displayName() == title:
+                if (i.type() == type and i.scene() and
+                    i.displayName().encode('UTF-8') == title.encode('UTF-8')):
                     compItem = i
             return compItem
 
@@ -251,7 +248,9 @@ class SerialPrint:
 
         # Get list of composers
         if len(self.iface.activeComposers()) == 0:
-            no_composer = u"No composer found in current project. Please add a composer with a map item and optionaly a legend."
+            no_composer = u"No composer found in current project. \
+                            Please add a composer with a map item and \
+                            optionaly a legend."
             self.iface.messageBar().pushMessage(u"Error", no_map,
                                                 level=QgsMessageBar.CRITICAL,
                                                 duration=3)
@@ -305,11 +304,15 @@ class SerialPrint:
                     # Composer name from ComboBox
                     selectedComposer = self.dlg.composer.currentText()
 
-                    slayers = list(self.dlg.layers.selectedItems()) if self.dlg.layers.selectedItems() else None
+                    if self.dlg.layers.selectedItems():
+                        slayers = list(self.dlg.layers.selectedItems())
+                    else:
+                        slayers = None
+
                     layers = []
                     for sl in [qsl.text() for qsl in slayers]:
                         for ql in qlayers:
-                            if sl == ql.name():
+                            if sl.encode('UTF-8') == ql.name().encode('UTF-8'):
                                 layers.append(ql)
 
                     # Name of composer map from ComboBox
@@ -329,7 +332,9 @@ class SerialPrint:
 
                     # Initialize composition
                     for c in self.iface.activeComposers():
-                        if c.composerWindow().windowTitle() == selectedComposer:
+                        ac = c.composerWindow().windowTitle().encode('UTF-8')
+                        sc = selectedComposer.encode('UTF-8')
+                        if ac == sc:
                             comp = c.composition()
 
                     # Initialize counter
@@ -341,7 +346,9 @@ class SerialPrint:
                     canvas.setRenderFlag(False)
 
                     if not composer_map or composer_map == '':
-                        no_map = u"No map item in current print composer. Please add a map item or choose a different composer."
+                        no_map = u"No map item in current print composer. \
+                                   Please add a map item or choose a \
+                                   different composer."
                         self.iface.messageBar().pushMessage(u"Error", no_map,
                                                           level=QgsMessageBar.CRITICAL,
                                                           duration=3)
